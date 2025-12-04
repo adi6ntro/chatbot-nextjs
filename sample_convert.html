@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Pizza Data Tools Demo</title>
+    <!-- Chart.js for graph rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 32px;
+      }
+      button {
+        margin-right: 20px;
+        margin-bottom: 20px;
+        font-size: 16px;
+      }
+      #pizzaChartCanvas {
+        display: block;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Pizza CSV & Graph Tools (from JSON strings)</h1>
+
+    <button id="pizzaCsvBtn">Download Pizza Steps CSV</button>
+    <button id="pizzaChartBtn">
+      Download Pizza Consumption Graph as Image
+    </button>
+    <br />
+    <canvas id="pizzaChartCanvas" width="600" height="400"></canvas>
+
+    <script>
+      // Provide your JSON strings here!
+      const csvJSONString = `{
+        "data_type": "csv",
+        "answer": "Here are the step-by-step instructions to make a pizza from scratch, converted into CSV format for easy reference.",
+        "data_name": "Pizza Making Steps",
+        "data_columns": [
+            "Step",
+            "Instruction"
+        ],
+        "data_rows": [
+            [
+                1,
+                "Prepare the dough: Combine 2 cups flour, 1 tsp yeast, 1 tsp salt, 1 tbsp olive oil, and 3/4 cup warm water. Knead for 5-10 minutes until smooth, then let rise 1-2 hours."
+            ],
+            [
+                2,
+                "Prepare the toppings: Grate cheese, slice vegetables or meats, and pre-cook if needed."
+            ],
+            [
+                3,
+                "Shape the dough: Punch down risen dough, roll out or press onto a pizza pan."
+            ],
+            [
+                4,
+                "Add sauce: Spread pizza sauce evenly over the dough."
+            ],
+            [
+                5,
+                "Add cheese and toppings: Sprinkle cheese and arrange other toppings."
+            ],
+            [
+                6,
+                "Bake: Preheat oven to 220°C (430°F), bake 10-15 minutes until crust is golden and cheese is melted."
+            ],
+            [
+                7,
+                "Serve: Remove from oven, let cool slightly, slice, and enjoy."
+            ]
+        ]
+    }`;
+
+      const graphJSONString = `{
+        "data_type": "graph",
+        "answer": "Here is a graph that illustrates estimated pizza consumption per capita (in kg/year) for selected countries. The data represents typical statistics from available global food reports.",
+        "data_name": "Pizza Consumption Per Country",
+        "data_columns": [
+            "Country",
+            "Pizza_Consumption_kg_per_year"
+        ],
+        "data_rows": [
+            [
+                "USA",
+                13
+            ],
+            [
+                "Italy",
+                7.8
+            ],
+            [
+                "France",
+                5.5
+            ],
+            [
+                "Germany",
+                4.2
+            ],
+            [
+                "UK",
+                4
+            ],
+            [
+                "Russia",
+                3.4
+            ],
+            [
+                "Canada",
+                6
+            ],
+            [
+                "Australia",
+                4.3
+            ],
+            [
+                "Japan",
+                2.5
+            ],
+            [
+                "Brazil",
+                3.6
+            ]
+        ]
+    }`;
+
+      // ---- Function: pizzaToolsFromJson ----
+      function pizzaToolsFromJson(csvJsonStr, graphJsonStr) {
+        let csvData, graphData;
+        try {
+          csvData = JSON.parse(csvJsonStr);
+          graphData = JSON.parse(graphJsonStr);
+        } catch (e) {
+          alert("Invalid JSON input");
+          return;
+        }
+
+        function arrayToCSV(columns, rows) {
+          const allRows = [columns, ...rows];
+          return allRows
+            .map((row) =>
+              row
+                .map((field) =>
+                  typeof field === "string" &&
+                  (field.includes(",") || field.includes('"'))
+                    ? '"' + field.replace(/"/g, '""') + '"'
+                    : field
+                )
+                .join(",")
+            )
+            .join("\r\n");
+        }
+
+        function downloadCSV() {
+          const csvContent = arrayToCSV(
+            csvData.data_columns,
+            csvData.data_rows
+          );
+          const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;",
+          });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = (csvData.data_name || "data") + ".csv";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+
+        function renderChart() {
+          const canvas = document.getElementById("pizzaChartCanvas");
+          const ctx = canvas.getContext("2d");
+          const labels = graphData.data_rows.map((row) => row[0]);
+          const values = graphData.data_rows.map((row) => row[1]);
+          if (window.pizzaChartInstance) window.pizzaChartInstance.destroy();
+          window.pizzaChartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: graphData.data_columns[1],
+                  data: values,
+                  backgroundColor: "rgba(255,99,132,0.65)",
+                },
+              ],
+            },
+            options: {
+              plugins: {
+                title: {
+                  display: true,
+                  text: graphData.data_name || "Data Graph",
+                },
+                legend: { display: false },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: graphData.data_columns[1] },
+                },
+                x: {
+                  title: { display: true, text: graphData.data_columns[0] },
+                },
+              },
+            },
+          });
+        }
+
+        function downloadChartImage() {
+          const canvas = document.getElementById("pizzaChartCanvas");
+          if (!canvas) return;
+          const url = canvas.toDataURL("image/png");
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = (graphData.data_name || "chart") + ".png";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+
+        // --- Setup Buttons ---
+        document.getElementById("pizzaCsvBtn").onclick = downloadCSV;
+        document.getElementById("pizzaChartBtn").onclick = downloadChartImage;
+        renderChart();
+
+        return {
+          downloadCSV,
+          renderChart,
+          downloadChartImage,
+        };
+      }
+
+      // Run the demo!
+      pizzaToolsFromJson(csvJSONString, graphJSONString);
+    </script>
+  </body>
+</html>
