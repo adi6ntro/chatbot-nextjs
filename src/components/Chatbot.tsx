@@ -14,6 +14,7 @@ export default function Chatbot() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const messageListRef = useRef<any>(null);
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,30 +64,40 @@ export default function Chatbot() {
         className="message-list"
         lockable
         toBottomHeight={'100%'}
-        dataSource={messages.map(m => ({
-          position: m.from === 'user' ? 'right' : 'left',
-          type: 'text',
+        referance={messageListRef}
+        dataSource={messages.map((m, idx) => ({
+          position: m.from === 'user' ? ('right' as const) : ('left' as const),
+          type: 'text' as const,
           title: m.from === 'user' ? 'Anda' : 'Bot',
           text: m.text,
           date: m.date,
+          id: idx,
+          focus: false,
+          titleColor: '',
+          forwarded: false,
+          replyButton: false,
+          removeButton: false,
+          status: 'read' as const,
+          notch: true,
+          retracted: false,
           // tambahkan `avatar` jika ingin, misal:
           // avatar: m.from === "user" ? "/user.png" : "/bot.png"
         }))}
-        style={{ minHeight: 320, marginBottom: 12 }}
       />
+      <div style={{ minHeight: 320, marginBottom: 12 }} />
       <form style={{ display: "flex", gap: 4 }} onSubmit={sendMessage}>
         <Input
           placeholder={loading ? "Menunggu balasan..." : "Ketik pesan..."}
           value={input}
-          disabled={loading}
-          onChange={e => setInput((e.target as HTMLInputElement).value)}
+          maxHeight={100}
+          onChange={(e: any) => setInput((e.target as HTMLInputElement).value)}
           // `react-chat-elements` versi terbaru gunakan prop onKeyDown
-          onKeyDown={e => {
+          onKeyDown={(e: any) => {
             if (e.key === "Enter" && !e.shiftKey) {
               sendMessage(e as any);
             }
           }}
-          style={{ flex: 1 }}
+          inputStyle={{ flex: 1, opacity: loading ? 0.6 : 1 }}
         />
         <Button
           text='Kirim'
@@ -94,7 +105,6 @@ export default function Chatbot() {
           disabled={loading}
           backgroundColor='#2563eb'
           color='#fff'
-          style={{ marginLeft: 8, borderRadius: 6, padding:"6px 20px" }}
         />
       </form>
       <div ref={chatBottomRef} />
